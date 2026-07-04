@@ -1,0 +1,34 @@
+[0:00 - HOOK]
+Hello everyone. Have you ever struggled to manage your health metrics, coordinate medication safety, and book doctor checkups all at once without exposing your private medical info? Most patients find this fragmented process exhausting.
+
+[0:20 - WHAT IT IS]
+(pause)
+That is why we built HealthSync, a secure, personal health and wellness coordinator agent. It runs on the modern ADK 2.0 multi-agent workflow framework, designed to help patients manage daily vitals logging, appointment scheduling, and safety checks in one place.
+
+[0:40 - SHOW THE BANNER]
+(show assets/cover_page_banner.png)
+As you can see on the screen, HealthSync is automated, secure, and intelligent, focusing on multi-agent execution, secure sandboxed environments, and robust model context protocol integrations.
+
+[1:00 - ARCHITECTURE]
+(show assets/architecture_diagram.png)
+Let's take a look at the system architecture. (pause)
+First, every query goes through our Security Checkpoint node to redact personal medical data and block injection attempts. (pause)
+From there, the sanitized request goes to the HealthSync Orchestrator. (pause)
+The Orchestrator delegates to three specialized LlmAgents: the Vitals Tracker Agent, the Symptom Checker Agent, and the Scheduler Agent. (pause)
+These agents interact with a local FastMCP Server to commit data to safety logs or schedule calendar slots. (pause)
+If scheduling a doctor's visit is requested, the system automatically redirects to our Appointment Approval Node for a human-in-the-loop validation step before finalizing.
+
+[2:00 - LIVE DEMO]
+(switch to playground at localhost:18081)
+Let's see it in action. (pause)
+First, we'll log a vital sign. If I type "Can you log my blood sugar as 110 mg/dL?", the orchestrator routes this to the Vitals Tracker sub-agent. The agent logs the sugar value via the MCP tool and confirms it immediately. If we follow up with "Show me my blood sugar history", it queries the history tool and formats the results in a tidy list. (pause)
+Next, let's test medication safety. If I ask "I'm taking Aspirin and Ibuprofen. Are there any interactions?", the symptom agent is triggered. It queries the local contraindication tool, identifying a bleeding risk warning, and alerts the patient to consult a pharmacist. (pause)
+Lastly, let's schedule a checkup. I'll type: "I need to schedule a checkup with Dr. Smith tomorrow at 10 AM". The scheduler agent writes a pending booking to the state, routes to the approval node, and triggers a RequestInput prompt. The UI shows a pause, asking us: "Please confirm: Do you want to schedule this appointment?". Once I enter 'yes', the workflow resumes, commits the appointment, and shows booking success.
+
+[3:00 - SECURITY & MCP]
+(pause)
+What makes this system unique is its security and extensibility. The security checkpoint node keeps audit logs of redacted patient PII and stops injection attempts, keeping the patient's personal data completely private. Additionally, our FastMCP server manages all databases and scheduling interactions locally, keeping LLM outputs grounded in authentic system calls.
+
+[3:30 - IMPACT / CLOSE]
+(pause)
+HealthSync ensures patient data safety, reduces human errors when tracking vitals, and simplifies wellness schedules. It puts the patient back in control. Thank you!
