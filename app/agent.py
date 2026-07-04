@@ -98,8 +98,9 @@ scheduler_tool = AgentTool(scheduler_agent)
 # Orchestrator Agent
 # ------------------------------------------------------------------------------
 
-def check_orchestrator_route(ctx: Context) -> None:
+def check_orchestrator_route(*, callback_context: Any) -> None:
     """Orchestrator callback that sets the downstream route based on context state."""
+    ctx = callback_context
     if "pending_appointment" in ctx.state:
         status = ctx.state.get("appointment_status")
         if status in ("confirmed", "cancelled"):
@@ -138,11 +139,11 @@ orchestrator = Agent(
 # ------------------------------------------------------------------------------
 
 @node
-async def security_checkpoint(ctx: Context, query: str) -> Any:
+async def security_checkpoint(ctx: Context, node_input: str) -> Any:
     """Performs PII redaction, prompt injection checks, and logs structured audits."""
     audit_log = {
         "event": "security_checkpoint",
-        "raw_query": query,
+        "raw_query": node_input,
         "pii_redacted": False,
         "injection_detected": False,
         "domain_checks_passed": True,
@@ -150,26 +151,26 @@ async def security_checkpoint(ctx: Context, query: str) -> Any:
     }
     
     # 1. PII Redaction
-    redacted_query = query
+    redacted_query = node_input
     ssn_pattern = r"\b\d{3}-\d{2}-\d{4}\b"
     mrn_pattern = r"\bMRN\d{6,8}\b"
     phone_pattern = r"\b\d{3}-\d{3}-\d{4}\b"
     
-    if re.search(ssn_pattern, query):
+    if re.search(ssn_pattern, node_input):
         redacted_query = re.sub(ssn_pattern, "[SSN_REDACTED]", redacted_query)
         audit_log["pii_redacted"] = True
         audit_log["severity"] = "WARNING"
-    if re.search(mrn_pattern, query):
+    if re.search(mrn_pattern, node_input):
         redacted_query = re.sub(mrn_pattern, "[MRN_REDACTED]", redacted_query)
         audit_log["pii_redacted"] = True
-    if re.search(phone_pattern, query):
+    if re.search(phone_pattern, node_input):
         redacted_query = re.sub(phone_pattern, "[PHONE_REDACTED]", redacted_query)
         audit_log["pii_redacted"] = True
 
     # 2. Prompt Injection Check
     injection_keywords = ["ignore previous instruction", "ignore instructions", "system prompt", "override instruction", "bypass safety"]
     for keyword in injection_keywords:
-        if keyword in query.lower():
+        if keyword in node_input.lower():
             audit_log["injection_detected"] = True
             audit_log["severity"] = "CRITICAL"
             logger.error(f"Security Audit Log: {json.dumps(audit_log)}")
@@ -178,7 +179,7 @@ async def security_checkpoint(ctx: Context, query: str) -> Any:
 
     # 3. Domain-Specific Consent Check
     # If exporting or sharing health data, ensure user consent is logged
-    if any(k in query.lower() for k in ["share my health data", "export my vitals", "send vitals"]):
+    if any(k in node_input.lower() for k in ["share my health data", "export my vitals", "send vitals"]):
         if not ctx.state.get("health_data_consent", False):
             audit_log["domain_checks_passed"] = False
             audit_log["severity"] = "WARNING"
@@ -193,7 +194,7 @@ async def security_checkpoint(ctx: Context, query: str) -> Any:
 
 
 @node
-async def appointment_approval(ctx: Context, query: str) -> Any:
+async def appointment_approval(ctx: Context, node_input: str) -> Any:
     """HITL node requesting user confirmation before scheduling an appointment."""
     interrupt_id = "appointment_confirm"
     
@@ -215,9 +216,9 @@ async def appointment_approval(ctx: Context, query: str) -> Any:
 
 
 @node
-async def final_output(ctx: Context, query: str) -> Any:
+async def final_output(ctx: Context, node_input: str) -> Any:
     """Terminal node in the workflow that returns the final result."""
-    return query
+    return node_input
 
 # ------------------------------------------------------------------------------
 # Workflow Definitions
@@ -240,7 +241,9 @@ healthsync_workflow = Workflow(
 )
 
 # Export app as required by fast_api_app.py
+root_agent = healthsync_workflow
+
 app = App(
     root_agent=healthsync_workflow,
-    name="healthsync",
+    name="app",
 )

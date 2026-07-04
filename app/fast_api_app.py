@@ -38,10 +38,19 @@ from app.app_utils.typing import Feedback
 load_dotenv()
 setup_telemetry()
 # Must run before get_fast_api_app to set the tracer provider resource.
-setup_agent_engine_telemetry()
-_, project_id = google.auth.default()
-logging_client = google_cloud_logging.Client()
-logger = logging_client.logger(__name__)
+try:
+    setup_agent_engine_telemetry()
+    _, project_id = google.auth.default()
+    logging_client = google_cloud_logging.Client()
+    logger = logging_client.logger(__name__)
+except Exception as e:
+    import logging as std_logging
+    std_logging.warning(f"Could not load GCP Credentials. Running in local fallback mode. Error: {e}")
+    project_id = "local-healthsync-project"
+    class LocalAuditLogger:
+        def log_struct(self, data, severity="INFO"):
+            std_logging.info(f"[{severity}] Audit Log: {data}")
+    logger = LocalAuditLogger()
 allow_origins = (
     os.getenv("ALLOW_ORIGINS", "").split(",") if os.getenv("ALLOW_ORIGINS") else None
 )
